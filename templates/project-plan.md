@@ -36,12 +36,15 @@
 
 ## 4. 技术栈
 
-- 前端：
-- 后端：
-- 数据库：
-- 部署方式：
-- 第三方服务：
-- 其他约束：
+- 前端：React 19+、TypeScript、Vite、pnpm、React Router 或 TanStack Router、TanStack Query、Zustand、React Hook Form、Axios 或 Fetch 封装。
+- UI 方案：按项目类型选择其一，例如 Ant Design、Arco Design、shadcn/ui 或 Tailwind CSS + 自定义组件；同一项目不混用多套 UI 体系。
+- 后端：Go、Gin、Gorm、Viper、go-playground/validator、log/slog 或 zap、swaggo/swag。
+- 数据库：PostgreSQL，默认使用 `bigint generated always as identity`、`timestamptz`、`jsonb`、`check`、`foreign key`、`partial index`。
+- 包管理与脚本：前端使用 pnpm；后端使用 Go Modules；常用命令必须写入 README。
+- 部署方式：优先选择简单可维护方案，例如 Docker Compose、单机部署、Vercel/Netlify + 后端服务，按项目实际情况确定。
+- 第三方服务：文件存储默认使用阿里云 OSS；如涉及登录、支付、邮件、短信、AI API 等，必须写清用途、替代方案、成本和密钥管理方式。
+- 文件存储：默认使用阿里云 OSS，计划书中必须说明 Bucket、Region、访问权限、上传方式、回调策略、生命周期规则、CDN 是否启用、密钥注入方式和本地开发替代方案。
+- 其他约束：如需偏离以上默认技术栈，必须在本计划书中说明原因、影响范围和迁移成本。
 
 ## 5. 数据模型
 

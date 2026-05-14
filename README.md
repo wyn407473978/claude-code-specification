@@ -146,7 +146,7 @@ cp /Users/risemini/project/claude-code-specification/templates/project-plan.md d
 - 用户与场景
 - 功能范围
 - 暂不实现项
-- 技术栈
+- 技术栈，模板已预设 React + TypeScript + Vite、Go + Gin、PostgreSQL、阿里云 OSS 等默认组合；如需偏离，必须写明原因
 - 数据模型
 - 页面与接口
 - 开发阶段
