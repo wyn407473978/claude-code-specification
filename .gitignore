@@ -16,6 +16,10 @@ tmp/
 .env.*
 !.env.example
 
+# Claude Code local-only files
+CLAUDE.local.md
+.claude/settings.local.json
+
 # Logs
 *.log
 npm-debug.log*
