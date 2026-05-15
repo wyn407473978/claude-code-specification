@@ -5,10 +5,12 @@
 - Go 后端规范见：`.claude/rules/go-backend.md`
 - React 前端规范见：`.claude/rules/react-frontend.md`
 - PostgreSQL 规范见：`.claude/rules/postgresql.md`
+- 多 Agent 协作规范见：`.claude/rules/agent-teams.md`
 
 当修改 `.go` 文件时，必须优先遵守 Go 后端规范。
 当修改 `.tsx`、`.ts`、`.jsx` 文件时，必须优先遵守 React 前端规范。
 当修改 migration、SQL、schema 相关文件时，必须优先遵守 PostgreSQL 规范。
+当使用多个 Agent 协作时，必须优先遵守 Agent Teams 协作规范，并读取 `.claude/agents` 中对应角色提示词。
 
 ## 通用工作原则
 
@@ -54,6 +56,31 @@ Agent 修改项目时必须先理解现有项目，再进行实现：
 - 不得实现计划书明确写入“暂不实现”的功能。
 - 如果用户需求超出计划书范围，必须先说明影响，再执行。
 - 开始新项目开发时，建议先使用 `.claude/commands/start-project.md` 对计划书进行阶段拆分和风险检查。
+
+## Agent Teams 协作策略
+
+本项目支持在复杂需求中使用多个 Agent 协作，但默认不启用多 Agent。只有当需求跨前端、后端、数据库、测试、文档，或涉及权限、支付、迁移、隐私、安全等高风险场景时，才建议启用 Agent Teams。
+
+启用前必须先阅读：
+
+1. `.claude/rules/agent-teams.md`
+2. `.claude/agents/lead-agent.md`
+3. 本次需要启用的专业 Agent 角色文件
+4. `docs/project-plan.md`，如果存在
+
+默认由 `Lead Agent` 统一拆分任务、分配文件所有权、控制串并行顺序和最终验收。专业 Agent 只在自己的职责和文件边界内工作。
+
+预设 Agent：
+
+- `Lead Agent`：统筹、拆分、冲突处理、最终验收。
+- `Product Planner Agent`：需求范围、阶段计划、验收标准。
+- `Go Backend Agent`：Go 后端接口、业务逻辑、测试。
+- `Frontend Agent`：Web 用户端、Web 后台管理端、H5 移动端和通用 React 前端开发。
+- `Database Agent`：PostgreSQL 建模、迁移、约束、索引。
+- `QA Review Agent`：代码审查、测试缺口、风险检查。
+- `Docs Agent`：README、接口说明、使用和部署文档。
+
+推荐使用 `.claude/commands/start-agent-team.md` 启动多 Agent 协作规划。用户确认团队组合、文件所有权和执行顺序前，不得直接大规模改代码。
 
 ## Git 与提交规则
 
