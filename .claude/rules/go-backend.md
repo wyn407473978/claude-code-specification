@@ -47,7 +47,26 @@
 - 多个数据库表对应的实体结构体写在同一个文件中
 - 所有接口入参或出参集中写在一个巨大文件中
 
-### 2.3 面向维护
+### 2.3 按表和业务实体拆分文件
+
+涉及多个数据库表、多个业务实体或多个管理对象时，必须按表或业务实体拆分文件，不得为了省事把同一模块下的所有代码写进一个总文件。
+
+后端拆分规则：
+
+- `model`：一个主要数据表一个文件，例如 `user.go`、`role.go`、`menu.go`；关系表可按职责放入 `relation.go` 或独立文件。
+- `request`：按实体或接口场景拆分，例如 `user_request.go`、`role_request.go`、`menu_request.go`。
+- `response`：按实体拆分，例如 `user_response.go`、`role_response.go`、`menu_response.go`。
+- `repository`：按数据表或聚合根拆分，例如 `user_repository.go`、`role_repository.go`、`menu_repository.go`；公共事务、软删除、错误映射等可放在 `repository.go`。
+- `service`：按业务实体拆分，例如 `user_service.go`、`role_service.go`、`menu_service.go`；公共辅助函数可放在 `service.go`。
+- `handler`：按路由资源拆分，例如 `user_handler.go`、`role_handler.go`、`menu_handler.go`；公共绑定、ID 解析、错误响应可放在 `handler.go`。
+- `router`：多个资源路由必须拆分到独立路由文件，例如 `admin_router.go`、`user_router.go`。
+
+允许例外：
+
+- 单表 Demo 或极小模块可以合并少量代码，但一旦出现两个以上实体、三个以上接口或文件超过 200 行，必须优先拆分。
+- 多个强相关的小关系表可以放在同一个 `relation.go`，但不得把所有主表实体混在一起。
+
+### 2.4 面向维护
 
 代码应优先考虑可读性、可维护性和可测试性。
 

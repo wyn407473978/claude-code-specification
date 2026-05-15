@@ -103,6 +103,24 @@ src/
 - 不允许出现职责不清的目录名，例如 `common2`、`newPages`、`testComponents`。
 - 避免过深嵌套，常规业务模块建议不超过 4 层。
 
+### 3.1 按业务实体拆分文件
+
+涉及多个业务实体、多个管理对象或多个页面资源时，必须按业务实体拆分文件，禁止把用户、角色、菜单、订单等不同实体的接口、类型、页面和状态集中写进一个总文件。
+
+前端拆分规则：
+
+- `types`：一个主要业务实体一个类型文件，例如 `user.ts`、`role.ts`、`menu.ts`；聚合导出可放在 `index.ts`。
+- `api` 或 `services`：按业务实体拆分，例如 `userApi.ts`、`roleApi.ts`、`menuApi.ts`，或 `services/adminUser.ts`、`services/adminRole.ts`。
+- `hooks`：按业务实体或页面流程拆分，例如 `useUsers.ts`、`useRolePermissions.ts`。
+- `pages`：一个页面一个文件，例如 `UserManagementPage.tsx`、`RoleManagementPage.tsx`、`MenuManagementPage.tsx`。
+- `components`：可复用业务组件按实体或功能拆分，例如 `UserForm.tsx`、`RolePermissionTree.tsx`。
+- `router`：多个业务页面路由较多时，应拆出模块路由文件，避免把所有路由堆在一个巨大配置中。
+
+允许例外：
+
+- 极小 Demo 可以暂时合并少量类型或接口，但一旦出现两个以上业务实体、三个以上接口或文件超过 200 行，必须优先拆分。
+- 公共请求实例、响应泛型、分页类型等通用基础类型可以集中放在 `api.ts`、`request.ts` 或 `common.ts`，但业务实体类型必须拆开。
+
 ## 4. UI 设计系统规范
 
 Agent 开发页面前，必须先确认或建立项目级 UI 规范。没有设计稿时，也要保持统一、克制、清晰。
