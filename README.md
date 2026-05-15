@@ -2,11 +2,12 @@
 
 这是一套面向个人开发者的 Claude Code 项目规范模板，用于让 Agent 在新项目或长期维护项目中保持一致的工作方式、代码质量和交付标准。
 
-它主要解决三个问题：
+它主要解决四个问题：
 
 1. 让 Claude Code 明确知道“怎么开发、怎么验证、怎么交付”。
 2. 让不同项目可以复用同一套 Go、React、PostgreSQL 规范。
 3. 让新项目可以先基于项目计划书拆阶段，再开始写代码，减少跑偏和过度工程化。
+4. 让复杂需求可以按 Agent Teams 模式拆分、并行、审查和统一交付。
 
 ## 目录结构
 
@@ -18,10 +19,20 @@
 │   └── project-plan.md
 └── .claude
     ├── settings.json
+    ├── agents
+    │   ├── database-agent.md
+    │   ├── docs-agent.md
+    │   ├── frontend-agent.md
+    │   ├── go-backend-agent.md
+    │   ├── lead-agent.md
+    │   ├── product-planner-agent.md
+    │   └── qa-review-agent.md
     ├── commands
     │   ├── review-spec.md
+    │   ├── start-agent-team.md
     │   └── start-project.md
     └── rules
+        ├── agent-teams.md
         ├── go-backend.md
         ├── react-frontend.md
         └── postgresql.md
@@ -42,8 +53,23 @@ Claude Code 的项目入口文件，定义通用工作原则、个人开发者�
 - `go-backend.md`：Go 后端项目规范。
 - `react-frontend.md`：React 前端项目规范。
 - `postgresql.md`：PostgreSQL 数据库设计规范。
+- `agent-teams.md`：多 Agent 协作规范，定义启用条件、角色边界、串并行顺序、文件所有权和验收要求。
 
 这些文件定义“怎么做”，例如目录结构、命名、测试、错误处理、安全、数据库迁移等。
+
+### `.claude/agents`
+
+多 Agent 协作角色提示词：
+
+- `lead-agent.md`：主协调者，负责需求理解、任务拆分、文件所有权、冲突处理和最终验收。
+- `product-planner-agent.md`：产品规划角色，负责范围边界、阶段计划和验收标准。
+- `go-backend-agent.md`：Go 后端开发角色，负责接口、业务逻辑、分层、测试和后端交付。
+- `frontend-agent.md`：前端开发角色，负责 Web 用户端、Web 后台管理端、H5 移动端、组件、交互和前端测试。
+- `database-agent.md`：数据库角色，负责 PostgreSQL 建模、迁移、约束、索引和数据风险。
+- `qa-review-agent.md`：质量审查角色，负责代码审查、测试缺口、安全和回归风险。
+- `docs-agent.md`：文档角色，负责 README、接口说明、使用说明和部署说明。
+
+默认不要求每个需求都启用多 Agent。只有跨前端、后端、数据库、测试、文档，或涉及权限、支付、迁移、隐私、安全等高风险需求时，才建议启用 Agent Teams。
 
 ### `.claude/settings.json`
 
@@ -58,6 +84,10 @@ Claude Code 项目级配置。目前主要用于禁止读取 `.env`、`secrets/`
 ### `.claude/commands/start-project.md`
 
 新项目启动命令。用于让 Claude Code 先读取 `docs/project-plan.md`，再拆分阶段、识别风险、生成 Phase 1 任务清单。
+
+### `.claude/commands/start-agent-team.md`
+
+多 Agent 协作启动命令。用于让 Claude Code 先判断是否需要 Agent Teams，再输出推荐团队、任务拆分、串行顺序、并行顺序、文件所有权、验证计划和风险。
 
 ### `templates/project-plan.md`
 
@@ -107,6 +137,7 @@ cp /Users/risemini/project/claude-code-specification/CLAUDE.md .
 - Go 后端规范见：`.claude/rules/go-backend.md`
 - React 前端规范见：`.claude/rules/react-frontend.md`
 - PostgreSQL 规范见：`.claude/rules/postgresql.md`
+- 多 Agent 协作规范见：`.claude/rules/agent-teams.md`
 ```
 
 然后根据项目实际情况补充：
@@ -170,6 +201,14 @@ cp /Users/risemini/project/claude-code-specification/templates/project-plan.md d
 6. 让 Claude Code 输出项目理解、计划书缺口、Phase 1 任务清单、风险与取舍。
 7. 确认 Phase 1 后，再开始实现。
 
+如果是跨前端、后端、数据库或高风险功能，可以改用：
+
+```text
+/start-agent-team
+```
+
+它会先输出是否启用 Agent Teams、推荐团队组合、各 Agent 的职责、文件所有权、串行和并行顺序。确认前不要让多个 Agent 同时大规模改代码。
+
 也可以直接输入：
 
 ```text
@@ -213,6 +252,46 @@ cp /Users/risemini/project/claude-code-specification/templates/project-plan.md d
 6. Agent 的默认经验和建议。
 
 如果规则冲突，Claude Code 必须显式说明取舍，不应静默选择。
+
+## Agent Teams 推荐用法
+
+后台管理类功能推荐团队：
+
+```text
+Lead Agent
+Product Planner Agent
+Database Agent
+Go Backend Agent
+Frontend Agent（后台管理模式）
+QA Review Agent
+Docs Agent（按需）
+```
+
+推荐顺序：
+
+```text
+Lead -> Planner -> Database -> Backend + Frontend 并行 -> Docs -> QA -> Lead
+```
+
+用户端 Web 或 H5 功能推荐顺序：
+
+```text
+Lead -> Planner -> Backend 契约（如需要接口） -> Frontend + Backend 并行 -> QA -> Lead
+```
+
+纯后端接口功能推荐顺序：
+
+```text
+Lead -> Database（如涉及表结构） -> Go Backend -> QA -> Lead
+```
+
+纯前端页面推荐顺序：
+
+```text
+Lead -> Planner（如需求不清） -> Frontend -> QA -> Lead
+```
+
+多 Agent 协作必须遵守文件所有权：每个 Agent 开始前都要知道自己能改哪些文件、不能改哪些文件。最终由 Lead Agent 检查 diff、运行验证并统一交付。
 
 ## 提交策略
 
@@ -262,6 +341,13 @@ templates/project-plan.md
 
 ```text
 .claude/commands/start-project.md
+```
+
+如果使用 Agent Teams，再复制：
+
+```text
+.claude/agents/
+.claude/commands/start-agent-team.md
 ```
 
 如果需要审查规范本身，再复制：
