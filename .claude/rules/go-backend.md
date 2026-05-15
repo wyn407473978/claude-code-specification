@@ -278,6 +278,42 @@ Process
 Data
 ```
 
+### 4.6 API JSON 字段命名
+
+后端接口对前端暴露的 JSON 字段必须统一使用小驼峰 `camelCase`，这是严格限制。
+
+必须遵守：
+
+- `request`、`response`、对外 DTO、分页响应、错误响应中的 `json` tag 必须使用 `camelCase`。
+- Go 结构体字段继续使用大驼峰，例如 `DisplayName`、`CreatedAt`、`RoleIDs`。
+- 数据库字段、SQL 字段、Gorm `column` tag、migration 中的字段名继续使用 `snake_case`。
+- 前端请求字段和后端响应字段必须保持一致，禁止后端返回 `snake_case` 再让前端转换。
+- 不允许新增 `json:"display_name"`、`json:"created_at"`、`json:"role_ids"`、`json:"permission_code"` 这类字段。
+
+正确示例：
+
+```go
+type UserResponse struct {
+	DisplayName string    `json:"displayName"`
+	RoleIDs     []int64   `json:"roleIds,omitempty"`
+	CreatedAt   time.Time `json:"createdAt"`
+}
+
+type User struct {
+	DisplayName string `gorm:"column:display_name" json:"displayName"`
+}
+```
+
+错误示例：
+
+```go
+type UserResponse struct {
+	DisplayName string    `json:"display_name"`
+	RoleIDs     []int64   `json:"role_ids,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+```
+
 除非上下文非常明确，否则不要使用过短缩写。
 
 ## 5. 配置管理规范

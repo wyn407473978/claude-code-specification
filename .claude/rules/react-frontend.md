@@ -307,6 +307,39 @@ export interface CreateMusicParams {
 - Props 类型命名使用 `ComponentNameProps`。
 - 不为了复用而过度抽象类型，业务含义不同就保持独立。
 
+### 8.1 API 字段命名
+
+前端业务类型、接口请求参数和接口响应字段必须统一使用小驼峰 `camelCase`，这是严格限制。
+
+必须遵守：
+
+- TypeScript 类型字段必须使用 `camelCase`，例如 `displayName`、`createdAt`、`roleIds`、`permissionCode`。
+- 页面、组件、Hooks、表单字段必须直接使用 `camelCase` 字段。
+- 禁止在前端业务类型中定义 `display_name`、`created_at`、`role_ids`、`permission_code` 这类 `snake_case` 字段。
+- 禁止让前端长期承担后端字段转换逻辑；后端 API 必须直接返回 `camelCase`。
+- 只有数据库、SQL、Gorm `column`、后端 migration 可以使用 `snake_case`。
+
+正确示例：
+
+```ts
+export interface UserItem {
+  id: number
+  displayName: string
+  roleIds?: number[]
+  createdAt: string
+}
+```
+
+错误示例：
+
+```ts
+export interface UserItem {
+  display_name: string
+  role_ids?: number[]
+  created_at: string
+}
+```
+
 ## 9. 页面状态规范
 
 每个页面都必须设计完整状态，而不是只实现“有数据”的理想情况。
