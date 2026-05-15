@@ -182,6 +182,56 @@ internal
     └── ai
 ```
 
+### 3.4 个人单体项目业务模块约定
+
+个人开发者的单体项目默认不需要为每个真实业务域都创建顶级 module。为了降低目录复杂度，推荐使用以下约定：
+
+```text
+internal
+└── module
+    ├── admin      # 后台基础系统能力：用户、角色、菜单、部门、字典、系统配置、操作日志
+    ├── business   # 真实业务域：订单、商品、课程、内容、预约、支付记录等
+    └── account    # 用户端账号、登录、个人资料；如项目没有用户端账号体系可不创建
+```
+
+`business` 模块内部仍然必须按业务实体和职责拆分文件：
+
+```text
+internal/module/business
+├── handler
+│   ├── order_handler.go
+│   └── product_handler.go
+├── model
+│   ├── order.go
+│   ├── order_item.go
+│   └── product.go
+├── repository
+│   ├── repository.go
+│   ├── order_repository.go
+│   └── product_repository.go
+├── request
+│   ├── order_request.go
+│   └── product_request.go
+├── response
+│   ├── order_response.go
+│   └── product_response.go
+├── service
+│   ├── service.go
+│   ├── order_service.go
+│   └── product_service.go
+└── enum
+    ├── order_status.go
+    └── product_status.go
+```
+
+规则：
+
+- 后台基础系统能力放入 `admin`，不要和真实业务混在一起。
+- 真实业务默认放入 `business`，不要轻易创建 `module/order`、`module/product` 等顶级模块。
+- 用户端账号、登录、个人资料等可放入 `account`，避免和 `admin` 用户管理混淆。
+- 即使统一放在 `business`，也必须遵守“按表和业务实体拆分文件”的规则。
+- 当某个业务域复杂到需要独立生命周期、独立团队、独立权限边界或未来可能拆服务时，才考虑从 `business` 拆成独立顶级 module。
+
 ## 4. 命名规范
 
 ### 4.1 包命名
