@@ -2,12 +2,13 @@
 
 这是一套面向个人开发者的 Claude Code 项目规范模板，用于让 Agent 在新项目或长期维护项目中保持一致的工作方式、代码质量和交付标准。
 
-它主要解决四个问题：
+它主要解决五个问题：
 
 1. 让 Claude Code 明确知道“怎么开发、怎么验证、怎么交付”。
 2. 让不同项目可以复用同一套 Go、React、PostgreSQL 规范。
-3. 让新项目可以先基于项目计划书拆阶段，再开始写代码，减少跑偏和过度工程化。
-4. 让复杂需求可以按 Agent Teams 模式拆分、并行、审查和统一交付。
+3. 让新项目可以基于项目计划书自动开发到 MVP，再由用户确认后继续完整版本。
+4. 让不影响开发的信息缺口以 Assumption、TODO 或配置占位方式记录下来，不频繁打断开发。
+5. 让复杂需求可以按 Agent Teams 模式拆分、并行、审查和统一交付。
 
 ## 目录结构
 
@@ -28,6 +29,7 @@
     │   ├── product-planner-agent.md
     │   └── qa-review-agent.md
     ├── commands
+    │   ├── continue-after-mvp.md
     │   ├── review-spec.md
     │   ├── start-agent-team.md
     │   └── start-project.md
@@ -83,11 +85,15 @@ Claude Code 项目级配置。目前主要用于禁止读取 `.env`、`secrets/`
 
 ### `.claude/commands/start-project.md`
 
-新项目启动命令。用于让 Claude Code 先读取 `docs/project-plan.md`，再拆分阶段、识别风险、生成 Phase 1 任务清单。
+新项目启动命令。用于让 Claude Code 先读取 `docs/project-plan.md`，识别硬阻塞和非阻塞信息缺口，然后自动执行到 MVP Gate。
+
+### `.claude/commands/continue-after-mvp.md`
+
+MVP 确认后的继续开发命令。用于让 Claude Code 在用户确认 MVP 后继续完整版本开发，并在 Final Gate 输出最终交付报告。
 
 ### `.claude/commands/start-agent-team.md`
 
-多 Agent 协作启动命令。用于让 Claude Code 先判断是否需要 Agent Teams，再输出推荐团队、任务拆分、串行顺序、并行顺序、文件所有权、验证计划和风险。
+多 Agent 协作启动命令。用于让 Claude Code 判断是否需要 Agent Teams，分配文件所有权，并按当前阶段自动执行到 MVP Gate 或 Final Gate。
 
 ### `templates/project-plan.md`
 
@@ -181,6 +187,7 @@ cp /Users/risemini/project/claude-code-specification/templates/project-plan.md d
 - 数据模型
 - 页面与接口
 - 开发阶段
+- 自动执行与暂停点
 - 验收标准
 - 风险与注意事项
 
@@ -198,8 +205,15 @@ cp /Users/risemini/project/claude-code-specification/templates/project-plan.md d
 /start-project
 ```
 
-6. 让 Claude Code 输出项目理解、计划书缺口、Phase 1 任务清单、风险与取舍。
-7. 确认 Phase 1 后，再开始实现。
+6. 让 Claude Code 检查计划书，区分硬阻塞和非阻塞信息缺口。
+7. 如果没有硬阻塞，让 Claude Code 自动开发到 MVP Gate。
+8. MVP 交付报告通过后，在 Claude Code 中执行或引用：
+
+```text
+/continue-after-mvp
+```
+
+9. 让 Claude Code 继续完整版本开发，并在 Final Gate 输出最终交付报告。
 
 如果是跨前端、后端、数据库或高风险功能，可以改用：
 
@@ -207,13 +221,14 @@ cp /Users/risemini/project/claude-code-specification/templates/project-plan.md d
 /start-agent-team
 ```
 
-它会先输出是否启用 Agent Teams、推荐团队组合、各 Agent 的职责、文件所有权、串行和并行顺序。确认前不要让多个 Agent 同时大规模改代码。
+它会先判断是否启用 Agent Teams，并由 Lead Agent 输出团队组合、各 Agent 的职责、文件所有权、串行和并行顺序。
+在自动执行模式下，Lead Agent 应自行完成团队选择和文件所有权分配，并推进到当前阶段 Gate；只有硬阻塞才提前暂停。
 
 也可以直接输入：
 
 ```text
 请先阅读 CLAUDE.md、docs/project-plan.md 和 .claude/rules 下的规范。
-然后根据项目计划书拆分开发阶段，先输出 Phase 1 任务清单，不要立即大规模写代码。
+然后根据项目计划书自动开发 MVP 版本。遇到不影响代码开发的信息缺口，先记录 Assumption、TODO 或配置占位并继续推进；只有 MVP 完成或遇到硬阻塞时再停下来。
 ```
 
 ### 已有项目接入
@@ -341,6 +356,7 @@ templates/project-plan.md
 
 ```text
 .claude/commands/start-project.md
+.claude/commands/continue-after-mvp.md
 ```
 
 如果使用 Agent Teams，再复制：
