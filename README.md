@@ -152,6 +152,7 @@ cp /Users/risemini/project/claude-code-specification/CLAUDE.md .
 - 测试命令
 - 构建命令
 - 环境变量说明
+  - 使用阿里云 OSS 时，至少需要说明：`OSS_ACCESS_KEY_ID`、`OSS_ACCESS_KEY_SECRET`、`OSS_ENDPOINT`、`OSS_BUCKET`、`OSS_REGION`、`OSS_BASE_URL`
 - 目录结构
 - 项目特殊约定
 
