@@ -407,6 +407,15 @@ type MySQLConfig struct {
 	MaxIdleConns int    `mapstructure:"max_idle_conns"`
 	MaxOpenConns int    `mapstructure:"max_open_conns"`
 }
+
+type OSSConfig struct {
+	AccessKeyID     string `mapstructure:"access_key_id"`
+	AccessKeySecret string `mapstructure:"access_key_secret"`
+	Endpoint        string `mapstructure:"endpoint"`
+	Bucket          string `mapstructure:"bucket"`
+	Region          string `mapstructure:"region"`
+	BaseURL         string `mapstructure:"base_url"`
+}
 ```
 
 要求：
@@ -430,6 +439,8 @@ type MySQLConfig struct {
 - 敏感配置必须优先通过环境变量注入
 - 禁止将生产数据库密码、Token、密钥写入仓库
 - 配置项必须映射到配置结构体
+- 使用阿里云 OSS 时，必须从系统环境变量读取以下配置：`OSS_ACCESS_KEY_ID`、`OSS_ACCESS_KEY_SECRET`、`OSS_ENDPOINT`、`OSS_BUCKET`、`OSS_REGION`、`OSS_BASE_URL`
+- 上述 OSS 配置必须映射到配置结构体，并通过 Viper 注入到业务层或 OSS client 层
 - 新增配置项必须同步更新中文 `README.md`
 - 配置默认值必须安全，不能默认连接生产环境
 
@@ -1402,6 +1413,7 @@ internal/module/ai/adapter
 - 第三方原始错误禁止直接返回前端
 - 第三方请求参数和响应结果如包含敏感信息，必须脱敏后记录
 - 外部服务配置必须通过 Viper 配置结构体注入
+- 阿里云 OSS 属于外部服务；其访问凭证和基础配置必须通过系统环境变量注入，禁止硬编码在代码、配置文件或仓库中
 - 外部服务调用必须支持 mock 或 fake，以便测试 service 层逻辑
 
 ## 21. 测试规范
