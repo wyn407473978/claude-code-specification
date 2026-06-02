@@ -36,6 +36,7 @@
     └── rules
         ├── agent-teams.md
         ├── go-backend.md
+        ├── github-actions.md
         ├── react-frontend.md
         └── postgresql.md
 ```
@@ -143,6 +144,7 @@ cp /Users/risemini/project/claude-code-specification/CLAUDE.md .
 - Go 后端规范见：`.claude/rules/go-backend.md`
 - React 前端规范见：`.claude/rules/react-frontend.md`
 - PostgreSQL 规范见：`.claude/rules/postgresql.md`
+- GitHub Actions 规范见：`.claude/rules/github-actions.md`
 - 多 Agent 协作规范见：`.claude/rules/agent-teams.md`
 ```
 

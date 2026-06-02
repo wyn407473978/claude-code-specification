@@ -5,11 +5,13 @@
 - Go 后端规范见：`.claude/rules/go-backend.md`
 - React 前端规范见：`.claude/rules/react-frontend.md`
 - PostgreSQL 规范见：`.claude/rules/postgresql.md`
+- GitHub Actions 规范见：`.claude/rules/github-actions.md`
 - 多 Agent 协作规范见：`.claude/rules/agent-teams.md`
 
 当修改 `.go` 文件时，必须优先遵守 Go 后端规范。
 当修改 `.tsx`、`.ts`、`.jsx` 文件时，必须优先遵守 React 前端规范。
 当修改 migration、SQL、schema 相关文件时，必须优先遵守 PostgreSQL 规范。
+当修改 `.github/workflows/*.yml`、`.github/workflows/*.yaml`、`.github/actions/**` 相关文件时，必须优先遵守 GitHub Actions 规范。
 当使用多个 Agent 协作时，必须优先遵守 Agent Teams 协作规范，并读取 `.claude/agents` 中对应角色提示词。
 
 ## 通用工作原则
