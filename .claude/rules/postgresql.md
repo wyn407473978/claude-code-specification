@@ -4,7 +4,9 @@
 
 适用项目：SaaS、管理后台、CRM、ERP、内容平台、AI 应用后台、内部运营系统等通用业务系统。
 
-个人项目、Demo 或低风险内部工具可以采用精简执行方式，但不能降低数据正确性底线：主键、必要唯一约束、外键或明确的一致性策略、时间字段、迁移安全说明必须保留。
+个人项目、Demo 或低风险内部工具可以采用精简执行方式，但不能降低数据正确性底线：主键、必要唯一约束、应用层一致性策略、时间字段、迁移安全说明必须保留。
+
+本规范严禁使用数据库外键（FOREIGN KEY）约束。所有表间关系必须通过应用层、唯一索引和 Check 约束保证一致性，详见 `8.4 外键规范`。
 
 ## 1. 设计总原则
 
@@ -14,7 +16,7 @@ Agent 设计数据库时必须遵守以下原则：
 2. 所有表、字段、约束、索引都必须命名清晰、可读、可追踪。
 3. 优先使用数据库约束保证数据正确性，不把所有校验都放到应用层。
 4. 每张业务表必须考虑查询场景、唯一性、生命周期、审计和权限边界。
-5. 默认使用 PostgreSQL 原生能力：`timestamptz`、`jsonb`、`check`、`foreign key`、`partial index`、`generated identity`。
+5. 默认使用 PostgreSQL 原生能力：`timestamptz`、`jsonb`、`check`、`partial index`、`generated identity`。
 6. 不为“可能会用到”的查询提前创建大量索引。索引必须服务于明确的查询条件、排序或关联。
 7. 数据库迁移必须可重复执行、可回滚或至少可安全补偿。
 8. 禁止使用含糊字段名，例如 `data`、`info`、`type`、`flag`，除非有明确上下文和约束。
@@ -41,9 +43,6 @@ Agent 设计数据库时必须遵守以下原则：
 -- 主键
 <table>_pkey
 
--- 外键
-<table>_<column>_fkey
-
 -- 唯一约束
 <table>_<column_or_columns>_key
 
@@ -55,7 +54,6 @@ Agent 设计数据库时必须遵守以下原则：
 
 ```sql
 constraint users_email_key unique (email),
-constraint orders_user_id_fkey foreign key (user_id) references users(id),
 constraint orders_total_amount_check check (total_amount >= 0)
 ```
 
@@ -220,7 +218,7 @@ constraint orders_status_check check (
 禁止把核心业务字段长期藏在 `jsonb` 中。以下字段应拆成独立列：
 
 - 会被频繁过滤、排序、关联的字段。
-- 需要唯一约束、外键约束的字段。
+- 需要唯一约束、引用关系的字段。
 - 财务、权限、状态流转相关字段。
 - 报表统计常用字段。
 
@@ -262,39 +260,61 @@ constraint order_items_quantity_check check (quantity > 0),
 constraint coupons_discount_rate_check check (discount_rate > 0 and discount_rate <= 1)
 ```
 
-### 8.4 Foreign Key
+### 8.4 Foreign Key（外键）
 
-外键默认应创建，除非存在明确的高吞吐、跨库、异步一致性理由。
+**严禁在业务表上使用数据库外键（FOREIGN KEY）约束**。所有表间关系（用户、订单、订单明细、角色等）必须通过应用层和数据库的非外键约束共同保证一致性。
 
-外键删除策略必须明确：
+#### 8.4.1 严禁使用外键的原因
 
-- `restrict`：默认推荐，防止误删父数据。
-- `cascade`：仅用于强从属关系，例如订单明细随订单删除。
-- `set null`：保留历史记录，但关联对象可删除。
-- `set default`：少用，必须有明确默认对象。
+- **写入性能**：每次 `INSERT` / `UPDATE` / `DELETE` 都需要触发表级锁和行级锁检查父表，热点表会显著拖慢写入。
+- **锁与死锁**：跨表外键容易在批量操作、并发写入、后台清理任务中形成死锁链路。
+- **变更成本**：外键会让 `ALTER TABLE`、分区、归档、数据订正、跨库迁移等操作变复杂甚至不可执行。
+- **扩展能力**：分库分表、读写分离、异步复制、跨服务拆分等架构演进都需要先拆外键。
+- **测试与本地开发**：外键会强制要求父表数据存在，单元测试、集成测试和种子数据准备成本上升。
+- **回滚与补偿**：外键放大误操作影响范围，紧急回滚脚本必须先解除外键才能执行。
 
-示例：
+#### 8.4.2 关系字段规范
 
-```sql
-constraint orders_user_id_fkey
-  foreign key (user_id)
-  references public.users(id)
-  on delete restrict
-```
+虽然不使用外键，但仍然需要在表结构中保留关系字段（如 `user_id`、`tenant_id`），并按以下要求处理：
 
-PostgreSQL 不会自动为外键列创建索引。所有外键列默认必须创建索引。
+- 关系字段命名必须清晰表达所引用的实体，例如 `user_id`、`order_id`、`tenant_id`。
+- 关系字段类型必须与被引用表的主键类型保持一致，默认使用 `bigint`。
+- 必须为关系字段创建合适的索引以支持 `where` 过滤和 `join` 关联，详见 `9. 索引设计规范`。
+- 关系字段是否可空、是否软删除过滤、是否带租户维度，必须在字段说明中明确。
+- 业务表上保留 `on_delete_cascade`、`on_delete_restrict` 这样的语义说明可以放在字段注释或 `README` 中，禁止作为数据库约束存在。
 
-```sql
-create index idx_orders_user_id on public.orders (user_id);
-```
+#### 8.4.3 一致性保障方案
+
+不使用外键时，必须通过以下手段的组合保证数据一致性：
+
+1. **应用层事务**：在 service 层用 `BEGIN ... COMMIT` 编排写操作，确保主子表写入要么全部成功要么全部回滚。
+2. **唯一约束**：对必须唯一的业务键（如 `tenant_id + order_no`、`tenant_id + user_id + role_id`）建立唯一索引，重复数据会被数据库直接拒绝。
+3. **Check 约束**：对业务规则、状态范围、数量、金额等使用 Check 约束。
+4. **业务校验**：在 service 层对父记录存在性、状态合法性、生命周期进行校验，例如创建订单前先校验用户存在且未锁定。
+5. **异步补偿**：对必须依赖外部系统的弱一致性场景，使用对账任务、扫描任务或消息补偿机制修复异常数据。
+6. **删除策略约定**：在代码和 `README` 中明确写明"删除父记录时如何处理子记录"，例如软删除父表、级联软删除子表、保留历史快照等。
+
+#### 8.4.4 删除策略文档化
+
+每张带关系字段的表必须在 `README` 或表注释中记录删除策略：
+
+- `restrict`：禁止删除父记录，除非先处理子记录。
+- `soft_cascade`：删除父记录时同步软删除子记录，由应用层事务保证。
+- `keep_history`：保留子记录，父记录软删除后子记录继续可见。
+- `manual_review`：必须人工审核后才能删除，禁止自动级联。
+
+#### 8.4.5 迁移与存量处理
+
+- 存量项目如果已存在外键，新增表、新增字段、新增索引时仍必须遵守"严禁新增外键"的要求。
+- 存量外键的清理应作为独立的迁移任务，按"先建唯一索引与 Check 约束 → 应用层补全校验 → 解除外键 → 删除外键索引"的顺序推进，并提供回滚脚本。
+- 迁移脚本中禁止出现 `add constraint ... foreign key`、`references ...` 这类 DDL。
 
 ## 9. 索引设计规范
 
 ### 9.1 必须创建索引的场景
 
-- 外键列。
 - 高频 `where` 过滤字段。
-- 高频 `join` 字段。
+- 高频 `join` 字段，包括关系字段（如 `user_id`、`tenant_id`）。
 - 高频排序字段，尤其是分页排序字段。
 - 唯一性约束字段。
 - 软删除表的活跃数据查询条件。
@@ -376,10 +396,9 @@ create table public.tenants (
 
 ```sql
 tenant_id bigint not null,
-constraint <table>_tenant_id_fkey
-  foreign key (tenant_id)
-  references public.tenants(id)
-  on delete restrict
+-- 关系字段必须创建索引，禁止使用外键约束
+constraint <table>_tenant_id_required_check
+  check (tenant_id is not null)
 ```
 
 多租户表的唯一约束通常必须带 `tenant_id`：
@@ -540,7 +559,7 @@ Agent 在为项目设计 PostgreSQL 表时，必须输出以下内容：
 
 1. 业务实体说明：每张表解决什么业务问题。
 2. 表关系说明：一对一、一对多、多对多关系。
-3. 完整 DDL：包含表、主键、外键、唯一约束、检查约束。
+3. 完整 DDL：包含表、主键、唯一约束、检查约束。关系字段保留在表中但禁止使用外键约束。
 4. 索引设计：说明每个索引服务的查询场景。
 5. 字段说明：字段含义、类型选择、是否必填、默认值。
 6. 数据生命周期：是否软删除、是否归档、是否需要审计。
@@ -565,7 +584,7 @@ Agent 不允许只输出一段 `create table` 就结束。
 ```sql
 create table public.<table_name> (
   id bigint generated always as identity,
-  tenant_id bigint,
+  tenant_id bigint not null,
 
   -- business fields
   name text not null,
@@ -582,10 +601,6 @@ create table public.<table_name> (
   version integer not null default 1,
 
   constraint <table_name>_pkey primary key (id),
-  constraint <table_name>_tenant_id_fkey
-    foreign key (tenant_id)
-    references public.tenants(id)
-    on delete restrict,
   constraint <table_name>_status_check
     check (status in ('active', 'disabled'))
 );
@@ -650,8 +665,6 @@ create table public.orders (
   version integer not null default 1,
 
   constraint orders_pkey primary key (id),
-  constraint orders_tenant_id_fkey foreign key (tenant_id) references public.tenants(id) on delete restrict,
-  constraint orders_user_id_fkey foreign key (user_id) references public.users(id) on delete restrict,
   constraint orders_status_check check (status in ('pending', 'paid', 'cancelled', 'refunded')),
   constraint orders_total_amount_check check (total_amount >= 0)
 );
@@ -679,7 +692,9 @@ Agent 交付表设计前必须逐项检查：
 - 状态、金额、数量等字段是否有 `check` 约束。
 - 唯一性是否由数据库保证。
 - 软删除表的唯一索引是否使用 `where deleted_at is null`。
-- 外键列是否都创建了索引。
+- 表中是否存在数据库外键约束（必须为 0）。
+- 关系字段是否都创建了合适的查询索引。
+- 删除策略是否在表注释或 README 中明确。
 - 复合索引字段顺序是否匹配查询条件。
 - 多租户表的唯一约束和索引是否包含 `tenant_id`。
 - 是否避免了无查询场景的冗余索引。
@@ -699,7 +714,7 @@ Agent 交付表设计前必须逐项检查：
 - 状态使用 `text` + `check`。
 - 业务表包含 `created_at`、`updated_at`。
 - 核心业务表保留软删除字段。
-- 外键默认启用，并为外键列创建索引。
+- 严禁使用数据库外键，表间关系通过应用层、唯一索引和 Check 约束保证。
 - 多租户系统中所有租户级业务表添加 `tenant_id`。
 - 唯一约束在多租户系统中默认带 `tenant_id`。
 - 列表页查询必须配套合适索引。
@@ -711,7 +726,7 @@ Agent 交付表设计前必须逐项检查：
 - 禁止用字符串存日期、时间、JSON。
 - 禁止核心业务表没有主键。
 - 禁止只在应用层保证唯一性。
-- 禁止外键列没有索引。
+- 禁止使用数据库外键（FOREIGN KEY）约束，包括 `references`、`on delete`、`on update` 等任何形式的外键定义。
 - 禁止滥用 `jsonb` 替代正常字段建模。
 - 禁止无约束的状态字段。
 - 禁止用 `is_deleted` 替代 `deleted_at` 作为唯一删除标记。
